@@ -5,12 +5,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleClick() {
+  async function handleClick(signal) {
     setError("");
     setLoading(true);
     try {
       const response = await fetch(
         "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+        { signal },
       );
 
       if (!response.ok) {
@@ -21,6 +22,9 @@ function App() {
       const price = data.bitcoin.usd;
       setBitcoinPrice(price);
     } catch (error) {
+      if (error.name === "AbortError") {
+        return;
+      }
       setError(error.message);
     } finally {
       setLoading(false);
@@ -28,8 +32,13 @@ function App() {
   }
 
   useEffect(() => {
-    console.log("EFFECT EXECUTED");
-    handleClick();
+    const controller = new AbortController();
+
+    handleClick(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, []);
   //  https://api.coingecko.com/api/v3/invalid-endpoint
 
@@ -46,7 +55,7 @@ function App() {
           <button
             disabled={loading}
             className="text-white"
-            onClick={handleClick}
+            onClick={() => handleClick()}
           >
             {loading ? "loading" : "Bitcoin Price"}
           </button>
